@@ -1,11 +1,30 @@
+using LogiTrip.Hybrid.Shared.Endpoints;
 using LogiTrip.Hybrid.Shared.Services;
 using LogiTrip.Hybrid.Shared.Services.Interfaces;
 using LogiTrip.Hybrid.Web.Components;
 using LogiTrip.Hybrid.Web.Services;
+using MudBlazor;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
+// Adicione o CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("https://localhost:7251", "http://localhost:5137")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+builder.Services.AddScoped<HttpClient>(sp =>
+{
+    var client = new HttpClient
+    {
+        BaseAddress = new Uri(ApiConstants.BaseUrl)
+    };
+    return client;
+});
 // Configuração de serviços
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -31,11 +50,12 @@ builder.Services.AddScoped<HttpClient>();
 builder.Services.AddHttpContextAccessor();
 
 // Serviços do MudBlazor
+// Add this after existing MudBlazor services
 builder.Services.AddMudServices(config =>
 {
-    config.SnackbarConfiguration.PositionClass = MudBlazor.Defaults.Classes.Position.TopRight;
+    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
     config.SnackbarConfiguration.PreventDuplicates = true;
-    config.SnackbarConfiguration.NewestOnTop = true;
+    config.SnackbarConfiguration.NewestOnTop = false;
     config.SnackbarConfiguration.ShowCloseIcon = true;
     config.SnackbarConfiguration.VisibleStateDuration = 5000;
     config.SnackbarConfiguration.HideTransitionDuration = 500;
@@ -66,6 +86,7 @@ else
 }
 
 // Middleware
+app.UseCors();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();

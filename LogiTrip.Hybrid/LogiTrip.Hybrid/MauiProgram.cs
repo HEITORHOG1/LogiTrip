@@ -1,7 +1,9 @@
 ﻿using LogiTrip.Hybrid.Services;
+using LogiTrip.Hybrid.Shared.Endpoints;
 using LogiTrip.Hybrid.Shared.Services;
 using LogiTrip.Hybrid.Shared.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using MudBlazor;
 using MudBlazor.Services;
 
 namespace LogiTrip.Hybrid
@@ -17,7 +19,25 @@ namespace LogiTrip.Hybrid
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 });
-
+            builder.Services.AddScoped<HttpClient>(sp =>
+            {
+                var client = new HttpClient
+                {
+                    BaseAddress = new Uri(ApiConstants.BaseUrl)
+                };
+                return client;
+            });
+            // Add this after existing MudBlazor services
+            builder.Services.AddMudServices(config =>
+            {
+                config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
+                config.SnackbarConfiguration.PreventDuplicates = true;
+                config.SnackbarConfiguration.NewestOnTop = false;
+                config.SnackbarConfiguration.ShowCloseIcon = true;
+                config.SnackbarConfiguration.VisibleStateDuration = 5000;
+                config.SnackbarConfiguration.HideTransitionDuration = 500;
+                config.SnackbarConfiguration.ShowTransitionDuration = 500;
+            });
             // Add device-specific services used by the MauiApp11.Shared project
             builder.Services.AddSingleton<IFormFactor, FormFactor>();
             builder.Services.AddScoped<IAuthService, AuthService>();
