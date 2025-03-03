@@ -1,0 +1,450 @@
+﻿@page "/proprietario/estabelecimentos/edit/{Id:int}"
+@inject IEstabelecimentoService EstabelecimentoService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4" Elevation="3">
+        <MudText Typo="Typo.h4" Class="mb-4">Gerenciar Estabelecimento</MudText>
+
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            <!-- Aba Dados do Estabelecimento -->
+            <MudTabPanel Text="Dados Cadastrais">
+                <MudForm Model="@estabelecimento" @ref="form">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.RazaoSocial"
+                            Label="Razão Social"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.NomeFantasia"
+                            Label="Nome Fantasia"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.CNPJ"
+                            Label="CNPJ"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Mask="@(new PatternMask("00.000.000/0000-00"))"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.Telefone"
+                            Label="Telefone"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Mask="@(new PatternMask("(00) 00000-0000"))"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.taxaEntregaFixa"
+                            Label="Taxa Entrega Fixa"
+                            Variant="Variant.Outlined"
+                            Required="true"
+                            RequiredError="Taxa Entrega Fixa é obrigatório"
+                            />
+                        </MudItem>
+
+
+
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="estabelecimento.CEP"
+                            Label="CEP"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Mask="@(new PatternMask("00000-000"))"
+                            OnBlur="@BuscarEndereco"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.Endereco"
+                            Label="Endereço"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Disabled="true"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="2">
+                            <MudTextField @bind-Value="estabelecimento.Numero"
+                            Label="Número"
+                            Required="true"
+                            RequiredError="Campo obrigatório"
+                            Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="estabelecimento.Descricao"
+                            Label="Descricao"
+                            Variant="Variant.Outlined"
+                            Required="true"
+                            RequiredError="Descricao é obrigatório" />
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex flex-column gap-4">
+                            @if (!string.IsNullOrEmpty(estabelecimento.UrlImagem) && selectedImage == null)
+                            {
+                                <div>
+                                    <MudText Typo="Typo.subtitle2">Imagem Atual:</MudText>
+                                    <MudImage Src="@($"{BaseEndPoint.BaseUrlImagem}/{estabelecimento.UrlImagem}")"
+                                    Width="300"
+                                    Height="300"
+                                    ObjectFit="ObjectFit.Cover"
+                                    Alt="@estabelecimento.UrlImagem" />
+                                </div>
+                            }
+                            else if (selectedImage != null)
+                            {
+                                <div>
+                                    <MudText Typo="Typo.subtitle2">Nova Imagem:</MudText>
+                                    <MudImage Src="@imagePreviewUrl"
+                                    Width="300"
+                                    Height="300"
+                                    ObjectFit="ObjectFit.Cover"
+                                    Alt="Preview" />
+                                </div>
+                            }
+
+                            <div>
+                                <InputFile id="fileInput" OnChange="OnInputFileChanged" hidden accept=".jpg,.jpeg,.png,.webp" />
+                                <MudButton HtmlTag="label"
+                                Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                StartIcon="@Icons.Material.Filled.CloudUpload"
+                                for="fileInput"
+                                Disabled="@isSaving">
+                                    Alterar Imagem
+                                </MudButton>
+                                @if (selectedImage != null)
+                                {
+                                    <div class="d-flex align-center mt-2">
+                                        <MudText Class="mr-4">Nova imagem selecionada: @selectedImage.Name</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                        OnClick="RemoveSelectedImage"
+                                        Color="Color.Error"
+                                        Size="Size.Small" />
+                                    </div>
+                                }
+                            </div>
+                        </MudItem>
+
+                        <!-- Switch para Status -->
+                        <MudItem xs="12" md="6">
+                            <MudSwitch @bind-Value="estabelecimento.Status" Label="Ativo" />
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+            </MudTabPanel>
+
+            <!-- Aba Horários -->
+            <MudTabPanel Text="Horários de Funcionamento">
+                @foreach (var dia in diasDaSemana)
+                {
+                    <MudPaper Class="pa-4 mb-4" Elevation="2">
+                        <MudText Typo="Typo.h6" Class="mb-4">@dia.Value</MudText>
+                        <MudGrid>
+                            <MudItem xs="12" sm="5">
+                                <MudTimePicker Label="Horário de Abertura"
+                                TimeFormat="HH:mm"
+                                Time="@horariosTemp[dia.Key].HoraAbertura"
+                                TimeChanged="@(newTime => horariosTemp[dia.Key].HoraAbertura = newTime.Value)"
+                                AmPm="false" />
+                            </MudItem>
+                            <MudItem xs="12" sm="5">
+                                <MudTimePicker Label="Horário de Fechamento"
+                                TimeFormat="HH:mm"
+                                Time="@horariosTemp[dia.Key].HoraFechamento"
+                                TimeChanged="@(newTime => horariosTemp[dia.Key].HoraFechamento = newTime.Value)"
+                                AmPm="false" />
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudButton OnClick="@(() => SalvarHorario(horariosTemp[dia.Key]))"
+                                Color="Color.Primary"
+                                Variant="Variant.Filled"
+                                FullWidth="true">
+                                    Salvar
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+            </MudTabPanel>
+        </MudTabs>
+
+        <MudDivider Class="my-4" />
+
+        <MudPaper Class="d-flex justify-end gap-4" Elevation="0">
+            <MudButton OnClick="Voltar"
+            Variant="Variant.Outlined"
+            StartIcon="@Icons.Material.Filled.ArrowBack">
+                Voltar
+            </MudButton>
+
+            <MudButton OnClick="SalvarEstabelecimento"
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            StartIcon="@Icons.Material.Filled.Save"
+            Disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ml-2">Salvando...</MudText>
+                }
+                else
+                {
+                    @("Salvar")
+                }
+            </MudButton>
+        </MudPaper>
+    </MudPaper>
+</MudContainer>
+
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Estabelecimento estabelecimento = new();
+    private List<HorarioFuncionamento> horarios = new();
+    private MudForm form = new();
+    private bool isSaving;
+    private bool isSavingHorario;
+    private int? horarioSalvandoId;
+    private Dictionary<DayOfWeek, HorarioFuncionamento> horariosTemp = new();
+    private IBrowserFile selectedImage;
+    private string imagePreviewUrl;
+    private readonly Dictionary<DayOfWeek, string> diasDaSemana = new()
+    {
+        { DayOfWeek.Monday, "Segunda-feira" },
+        { DayOfWeek.Tuesday, "Terça-feira" },
+        { DayOfWeek.Wednesday, "Quarta-feira" },
+        { DayOfWeek.Thursday, "Quinta-feira" },
+        { DayOfWeek.Friday, "Sexta-feira" },
+        { DayOfWeek.Saturday, "Sábado" },
+        { DayOfWeek.Sunday, "Domingo" }
+    };
+
+    private async Task OnInputFileChanged(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            selectedImage = e.File;
+            var buffer = new byte[selectedImage.Size];
+            using (var stream = selectedImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024))
+            {
+                int bytesRead;
+                int totalBytesRead = 0;
+                while ((bytesRead = await stream.ReadAsync(buffer, totalBytesRead, buffer.Length - totalBytesRead)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                }
+            }
+            imagePreviewUrl = $"data:image/png;base64,{Convert.ToBase64String(buffer)}";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar a imagem: {ex.Message}", Severity.Error);
+        }
+    }
+
+
+    private void RemoveSelectedImage()
+    {
+        selectedImage = null;
+        imagePreviewUrl = null;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEstabelecimento();
+        await LoadHorarios();
+
+        foreach (var dia in diasDaSemana)
+        {
+            var horarioExistente = horarios.FirstOrDefault(h => h.DiaSemana == dia.Key);
+
+            horariosTemp[dia.Key] = horarioExistente ?? new HorarioFuncionamento
+                {
+                    EstabelecimentoId = Id,
+                    DiaSemana = dia.Key,
+                    HoraAbertura = new TimeSpan(8, 0, 0),
+                    HoraFechamento = new TimeSpan(18, 0, 0)
+                };
+        }
+    }
+
+    private async Task LoadEstabelecimento()
+    {
+        try
+        {
+            estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Id)
+                ?? throw new Exception("Estabelecimento não encontrado.");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar estabelecimento: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/proprietario/estabelecimentos/index");
+        }
+    }
+
+    private async Task LoadHorarios()
+    {
+        try
+        {
+            horarios = (await EstabelecimentoService.GetHorariosByEstabelecimentoIdAsync(Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar horários: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private HorarioFuncionamento GetHorarioDia(DayOfWeek dia) => 
+        horarios.FirstOrDefault(h => h.DiaSemana == dia);
+
+    private bool IsHorarioValid(HorarioFuncionamento horario) => 
+        horario != null && horario.HoraAbertura < horario.HoraFechamento;
+
+    private void OnDiaChange(DayOfWeek dia, bool isChecked)
+    {
+        if (isChecked && !horarios.Any(h => h.DiaSemana == dia))
+        {
+            horarios.Add(new HorarioFuncionamento
+                {
+                    EstabelecimentoId = Id,
+                    DiaSemana = dia,
+                    HoraAbertura = new TimeSpan(8, 0, 0), // 08:00
+                    HoraFechamento = new TimeSpan(18, 0, 0) // 18:00
+                });
+        }
+        else if (!isChecked)
+        {
+            var horario = GetHorarioDia(dia);
+            if (horario?.Id > 0)
+                _ = DeleteHorario(horario);
+            else if (horario != null)
+                horarios.Remove(horario);
+        }
+        StateHasChanged();
+    }
+
+    private async Task DeleteHorario(HorarioFuncionamento horario)
+    {
+        try
+        {
+            if (await EstabelecimentoService.DeleteHorarioFuncionamentoAsync(horario.Id))
+            {
+                horarios.Remove(horario);
+                Snackbar.Add("Horário removido com sucesso!", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao remover horário: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnHoraChange(HorarioFuncionamento horario, TimeSpan? abertura, TimeSpan? fechamento)
+    {
+        if (abertura.HasValue) horario.HoraAbertura = abertura.Value;
+        if (fechamento.HasValue) horario.HoraFechamento = fechamento.Value;
+        StateHasChanged();
+    }
+
+    private async Task SalvarHorario(HorarioFuncionamento horario)
+    {
+        try
+        {
+            var request = new HorarioFuncionamentoRequest
+                {
+                    EstabelecimentoId = Id,
+                    DiaSemana = horario.DiaSemana,
+                    HoraAbertura = horario.HoraAbertura.ToString(@"hh\:mm\:ss"),
+                    HoraFechamento = horario.HoraFechamento.ToString(@"hh\:mm\:ss")
+                };
+
+            var sucesso = await EstabelecimentoService.CreateHorarioFuncionamentoAsync(request);
+
+            if (sucesso)
+            {
+                await LoadHorarios();
+                Snackbar.Add("Horário salvo com sucesso!", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar horário: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SalvarEstabelecimento()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        try
+        {
+            isSaving = true;
+
+            // Limpar os campos de máscara
+            estabelecimento.CNPJ = estabelecimento.CNPJ?.Replace(".", "").Replace("-", "").Replace("/", "");
+            estabelecimento.Telefone = estabelecimento.Telefone?.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
+            estabelecimento.CEP = estabelecimento.CEP?.Replace("-", "");
+
+            // Chamar o serviço para atualizar o estabelecimento
+            var sucesso = await EstabelecimentoService.UpdateEstabelecimentoAsync(estabelecimento, selectedImage);
+
+            if (sucesso)
+            {
+                Snackbar.Add("Estabelecimento atualizado com sucesso!", Severity.Success);
+                NavigationManager.NavigateTo("/proprietario/estabelecimentos/index");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar estabelecimento: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+
+
+    private async Task BuscarEndereco()
+    {
+        if (string.IsNullOrWhiteSpace(estabelecimento.CEP)) return;
+
+        try
+        {
+            var cep = estabelecimento.CEP.Replace("-", "");
+            var endereco = await EstabelecimentoService.BuscarEnderecoPorCepAsync(cep);
+
+            if (endereco != null)
+            {
+                estabelecimento.Endereco = $"{endereco.Logradouro}, {endereco.Bairro}, {endereco.Localidade} - {endereco.UF}";
+            }
+            else
+            {
+                Snackbar.Add("CEP não encontrado", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao buscar CEP: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Voltar() => NavigationManager.NavigateTo("/proprietario/estabelecimentos/index");
+}

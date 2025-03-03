@@ -1,0 +1,148 @@
+﻿@page "/"
+@using LogiTrip.Hybrid.Shared.Services.Interfaces
+@using LogiTrip.Model.Enums
+@using LogiTrip.Model.Requests
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<div class="login-background">
+    <MudContainer Class="mud-mt-12">
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-6 elevation-24">
+                    <MudText Typo="Typo.h3" Align="Align.Center" Class="mud-mb-6">Login</MudText>
+
+                    <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        <MudCard>
+                            <MudCardContent>
+                                <MudTextField @bind-Value="loginModel.UserName"
+                                              Label="Usuário"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Person"
+                                              Required="true"
+                                              RequiredError="Usuário é obrigatório"
+                                              Disabled="@isLoading"
+                                              Class="mud-mb-4" />
+
+                                <MudTextField @bind-Value="loginModel.Password"
+                                              Label="Senha"
+                                              Variant="Variant.Outlined"
+                                              InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@(showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                              OnAdornmentClick="() => showPassword = !showPassword"
+                                              Required="true"
+                                              RequiredError="Senha é obrigatória"
+                                              Disabled="@isLoading"
+                                              Class="mud-mb-4" />
+                            </MudCardContent>
+
+                            <MudCardActions Class="d-flex flex-column align-center">
+                                <MudButton Type="Submit"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Size="Size.Large"
+                                           FullWidth="true"
+                                           StartIcon="@Icons.Material.Filled.Login"
+                                           OnClick="HandleLogin"
+                                           Disabled="@isLoading"
+                                           Class="mud-mb-2">
+                                    @if (isLoading)
+                                    {
+                                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                        <MudText Class="ms-2">Processando...</MudText>
+                                    }
+                                    else
+                                    {
+                                        @("Entrar")
+                                    }
+                                </MudButton>
+
+                                <MudDivider Class="my-4" />
+
+                               @*  <MudLink Href="register" Class="mt-2">
+                                    Não tem uma conta? Registre-se
+                                </MudLink> *@
+                            </MudCardActions>
+                        </MudCard>
+                    </EditForm>
+
+                    @if (!string.IsNullOrEmpty(debugMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mt-4">
+                            @debugMessage
+                        </MudAlert>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+</div>
+
+@code {
+    private LoginRequest loginModel = new LoginRequest();
+    private string? debugMessage;
+    private bool isLoading;
+    private bool showPassword;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            debugMessage = null;
+
+            if (string.IsNullOrWhiteSpace(loginModel.UserName) || string.IsNullOrWhiteSpace(loginModel.Password))
+            {
+                debugMessage = "Usuário e Senha são obrigatórios.";
+                Snackbar.Add(debugMessage, Severity.Error);
+                return;
+            }
+
+            var response = await AuthService.LoginAsync(loginModel);
+
+            if (response != null && !string.IsNullOrEmpty(response.Token) && response.User != null)
+            {
+                if (string.IsNullOrEmpty(response.User.Role))
+                {
+                    Snackbar.Add("Erro: Papel do usuário não definido", Severity.Error);
+                    return;
+                }
+
+                Snackbar.Add($"Bem-vindo, {response.User.UserName}!", Severity.Success);
+
+                await Task.Delay(100);
+
+                var userRole = AuthService.GetUserRole();
+                var redirectUrl = userRole switch
+                {
+                    Role.Proprietario => "/proprietario-dashboard",
+                    Role.Gerente => "/gerente-dashboard",
+                    Role.Cliente => "/cliente-dashboard",
+                    _ => "/dashboard"
+                };
+
+                Navigation.NavigateTo(redirectUrl);
+            }
+            else
+            {
+                debugMessage = "Login falhou";
+                Snackbar.Add("Erro: Permissão para acessar foi negada.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            debugMessage = $"Erro durante o login: {ex.Message}";
+            Snackbar.Add(debugMessage, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,246 @@
+﻿@page "/proprietario/usuarios/create/{estabelecimentoId:int}"
+
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <MudText Typo="Typo.h5">Adicionar Usuário</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+            <MudForm @ref="form" @bind-IsValid="@isValid">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.NomeUsuario"
+                                      Label="Nome do Usuário"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Nome é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.Username"
+                                      Label="Username"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Username é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.Email"
+                                      Label="Email"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Email é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.Password"
+                                      Label="Senha"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Senha é obrigatória"
+                                      InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@(showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                      OnAdornmentClick="() => showPassword = !showPassword"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.CPF_CNPJ"
+                                      Label="CPF"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="CPF é obrigatório"
+                                      Mask="@cpfMask"
+                                      Placeholder="000.000.000-00"
+                                      HelperText="Digite no formato: 000.000.000-00"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.Telefone"
+                                      Label="Telefone"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Telefone é obrigatório"
+                                      Mask="@phoneMask"
+                                      Placeholder="(00) 00000-0000"
+                                      HelperText="Digite no formato: (00) 00000-0000"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.Endereco"
+                                      Label="Endereço"
+                                      Variant="Variant.Outlined"
+                                      Lines="2"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="novoUsuario.CEP"
+                                      Label="CEP"
+                                      Variant="Variant.Outlined"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Role"
+                                   @bind-Value="novoUsuario.NivelAcesso"
+                                   Label="Nível de Acesso"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   RequiredError="Nível de Acesso é obrigatório"
+                                   Disabled="@isLoading">
+                            @foreach (Role role in Enum.GetValues(typeof(Role)))
+                            {
+                                <MudSelectItem Value="@role">@GetRoleDisplayName(role)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Role"
+                                   @bind-Value="novoUsuario.Role"
+                                   Label="Função"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   RequiredError="Função é obrigatória"
+                                   Disabled="@isLoading">
+                            @foreach (Role role in Enum.GetValues(typeof(Role)))
+                            {
+                                <MudSelectItem Value="@role">@GetRoleDisplayName(role)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-6" />
+
+                <MudGrid>
+                    <MudItem xs="12" Class="d-flex justify-end gap-4">
+                        <MudButton Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   OnClick="Voltar"
+                                   Disabled="@isLoading"
+                                   StartIcon="@Icons.Material.Filled.ArrowBack">
+                            Voltar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="Salvar"
+                                   Disabled="@(!isValid || isLoading)"
+                                   StartIcon="@Icons.Material.Filled.Save">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Salvando...</MudText>
+                            }
+                            else
+                            {
+                                @("Salvar")
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+
+    private MudForm form;
+    private RegisterFuncionarioModel novoUsuario = new RegisterFuncionarioModel();
+    private PatternMask cpfMask = new PatternMask("000.000.000-00") { CleanDelimiters = true };
+    private PatternMask phoneMask = new PatternMask("(00) 00000-0000");
+    private bool isValid;
+    private bool isLoading;
+    private bool showPassword;
+
+    protected override void OnInitialized()
+    {
+        novoUsuario.EstabelecimentoId = estabelecimentoId;
+    }
+
+    private string GetRoleDisplayName(Role role)
+    {
+        return role switch
+        {
+            Role.Cliente => "Cliente",
+            Role.Proprietario => "Proprietário",
+            Role.Funcionario => "Funcionário",
+            Role.Administrador => "Administrador",
+            Role.Gerente => "Gerente",
+            Role.Atendente => "Atendente",
+            Role.Cozinheiro => "Cozinheiro",
+            Role.Caixa => "Caixa",
+            Role.Garcom => "Garçom",
+            Role.Entregador => "Entregador",
+            _ => role.ToString()
+        };
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo($"/proprietario/usuarios/index/{estabelecimentoId}");
+    }
+
+    private async Task Salvar()
+    {
+        try
+        {
+            await form.Validate();
+            if (form.IsValid)
+            {
+                isLoading = true;
+
+                // Limpar formatação dos campos
+                novoUsuario.CPF_CNPJ = novoUsuario.CPF_CNPJ?.Replace(".", "").Replace("-", "");
+                novoUsuario.Telefone = novoUsuario.Telefone?.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
+
+                var sucesso = await AuthService.RegisterFuncionarioAsync(novoUsuario);
+
+                if (sucesso)
+                {
+                    Snackbar.Add("Usuário cadastrado com sucesso!", Severity.Success);
+                    NavigationManager.NavigateTo($"/proprietario/usuarios/index/{estabelecimentoId}");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao cadastrar usuário.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
+
+
+
+

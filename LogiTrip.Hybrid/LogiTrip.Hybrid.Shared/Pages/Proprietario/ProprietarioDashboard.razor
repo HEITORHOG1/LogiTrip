@@ -1,0 +1,56 @@
+﻿@page "/proprietario-dashboard"
+@inject IAuthService AuthService
+
+@if (!_initialized)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudText Typo="Typo.h4" GutterBottom="true">Dashboard Proprietário</MudText>
+            @if (AuthService.CurrentUser != null)
+            {
+                <MudText Typo="Typo.h6">Bem-vindo, @AuthService.CurrentUser.NomeUsuario!</MudText>
+            }
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    private bool _initialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeDashboard();
+    }
+
+    private async Task InitializeDashboard()
+    {
+        try
+        {
+            await AuthService.InitializeAuthStateAsync();
+            var isAuthenticated = AuthService.IsLoggedIn && AuthService.CurrentUser != null;
+
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            _initialized = true;
+        }
+        catch (Exception ex)
+        {
+            // Log do erro e feedback ao usuário
+            Console.WriteLine($"Erro ao inicializar o dashboard: {ex.Message}");
+            _initialized = true;
+            Snackbar.Add("Erro ao carregar o dashboard. Por favor, tente novamente.", Severity.Error);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}

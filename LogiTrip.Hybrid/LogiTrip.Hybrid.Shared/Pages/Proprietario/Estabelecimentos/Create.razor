@@ -1,0 +1,318 @@
+﻿@page "/proprietario/estabelecimentos/create"
+@inject IEstabelecimentoService EstabelecimentoService
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <MudText Typo="Typo.h5">Adicionar Estabelecimento</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+            <MudForm @ref="form" @bind-IsValid="@isValid">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.RazaoSocial"
+                                      Label="Razão Social"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Razão Social é obrigatória"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.NomeFantasia"
+                                      Label="Nome Fantasia"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Nome Fantasia é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.CNPJ"
+                                      Label="CNPJ"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Mask="@cnpjMask"
+                                      Required="true"
+                                      RequiredError="CNPJ é obrigatório"
+                                      Placeholder="00.000.000/0000-00"
+                                      Disabled="@isLoading"
+                                      HelperText="Digite no formato: 00.000.000/0000-00" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.Telefone"
+                                      Label="Telefone"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Mask="@phoneMask"
+                                      Required="true"
+                                      RequiredError="Telefone é obrigatório"
+                                      Placeholder="(00) 00000-0000"
+                                      Disabled="@isLoading"
+                                      HelperText="Digite no formato: (00) 00000-0000" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.TaxaEntregaFixa"
+                                      Label="Taxa Entrega Fixa"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Taxa Entrega Fixa é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.CEP"
+                                      Label="CEP"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="CEP é obrigatório"
+                                      Disabled="@isLoading"
+                                      HelperText="Digite no formato: 00000-000"
+                                      Immediate="true"
+                                      OnBlur="BuscarEndereco" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="novoEstabelecimento.Endereco"
+                                      Label="Endereço"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Endereço é obrigatório"
+                                      Lines="2"
+                                      Disabled="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.Numero"
+                                      Label="Número"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Número é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoEstabelecimento.Descricao"
+                                      Label="Descricao"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Descricao é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6" Class="d-flex align-center">
+                        <MudCheckBox T="bool?"
+                                     @bind-Checked="novoEstabelecimento.Status"
+                                     Label="Estabelecimento Ativo"
+                                     Color="Color.Primary"
+                                     Disabled="@isLoading" />
+                    </MudItem>
+
+                   @*  <MudItem xs="12" Class="d-flex flex-column gap-4">
+                        @if (!string.IsNullOrEmpty(novoEstabelecimento.UrlImagem) && selectedImage == null)
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Imagem Atual:</MudText>
+                                <MudImage Src="@($"{BaseEndPoint.BaseUrlImagem}/{novoEstabelecimento.UrlImagem}")"
+                                          Width="300"
+                                          Height="300"
+                                          ObjectFit="ObjectFit.Cover"
+                                          Alt="@novoEstabelecimento.UrlImagem" />
+                            </div>
+                        }
+                        else if (selectedImage != null)
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Nova Imagem:</MudText>
+                                <MudImage Src="@imagePreviewUrl"
+                                          Width="300"
+                                          Height="300"
+                                          ObjectFit="ObjectFit.Cover"
+                                          Alt="Preview" />
+                            </div>
+                        }
+
+                        <div>
+                            <InputFile id="fileInput" OnChange="OnInputFileChanged" hidden accept=".jpg,.jpeg,.png,.webp" />
+                            <MudButton HtmlTag="label"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload"
+                                       for="fileInput">
+                                Alterar Imagem
+                            </MudButton>
+                            @if (selectedImage != null)
+                            {
+                                <div class="d-flex align-center mt-2">
+                                    <MudText Class="mr-4">Nova imagem selecionada: @selectedImage.Name</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   OnClick="RemoveSelectedImage"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small" />
+                                </div>
+                            }
+                        </div>
+                    </MudItem> *@
+
+
+                </MudGrid>
+
+                <MudDivider Class="my-6" />
+
+                <MudGrid>
+                    <MudItem xs="12" Class="d-flex justify-end gap-4">
+                        <MudButton Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   OnClick="Voltar"
+                                   Disabled="@isLoading"
+                                   StartIcon="@Icons.Material.Filled.ArrowBack">
+                            Voltar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SaveEstabelecimento"
+                                   Disabled="@(!isValid || isLoading)"
+                                   StartIcon="@Icons.Material.Filled.Save">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Salvando...</MudText>
+                            }
+                            else
+                            {
+                                @("Salvar")
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    private CreateEstabelecimentoModel novoEstabelecimento = new();
+    private MudForm form;
+    private bool isValid;
+    private bool isLoading;
+    private PatternMask cnpjMask = new PatternMask("00.000.000/0000-00") { CleanDelimiters = true };
+    private PatternMask phoneMask = new PatternMask("(00) 00000-0000");
+    private IBrowserFile selectedImage;
+    private string? imagePreviewUrl; // Adicione esta linha para declarar a variável
+    private void RemoveSelectedImage()
+    {
+        selectedImage = null;
+        imagePreviewUrl = null;
+        StateHasChanged();
+    }
+    private async Task OnInputFileChanged(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            selectedImage = e.File;
+            var buffer = new byte[selectedImage.Size];
+            using (var stream = selectedImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024))
+            {
+                int bytesRead;
+                int totalBytesRead = 0;
+                while ((bytesRead = await stream.ReadAsync(buffer, totalBytesRead, buffer.Length - totalBytesRead)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                }
+            }
+            imagePreviewUrl = $"data:image/png;base64,{Convert.ToBase64String(buffer)}";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar a imagem: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveEstabelecimento()
+    {
+        try
+        {
+            await form.Validate();
+            if (!form.IsValid) return;
+
+            isLoading = true;
+
+            // Limpar delimitadores de máscara
+            novoEstabelecimento.CNPJ = novoEstabelecimento.CNPJ?.Replace(".", "").Replace("-", "").Replace("/", "");
+            novoEstabelecimento.Telefone = novoEstabelecimento.Telefone?.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
+            novoEstabelecimento.CEP = novoEstabelecimento.CEP?.Replace("-", "");
+
+            var sucesso = await EstabelecimentoService.CreateEstabelecimentoAsync(novoEstabelecimento, selectedImage);
+
+            if (sucesso)
+            {
+                Snackbar.Add("Estabelecimento criado com sucesso!", Severity.Success);
+                NavigationManager.NavigateTo("/proprietario/estabelecimentos/index");
+            }
+            else
+            {
+                Snackbar.Add("Erro ao salvar o estabelecimento.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo("/proprietario/estabelecimentos/index");
+    }
+
+    private async Task BuscarEndereco()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(novoEstabelecimento.CEP))
+            {
+                isLoading = true;
+
+                // Chamar a API para buscar o endereço
+                var endereco = await EstabelecimentoService.BuscarEnderecoPorCepAsync(novoEstabelecimento.CEP.Replace("-", ""));
+                if (endereco != null)
+                {
+                    novoEstabelecimento.Endereco = $"{endereco.Logradouro}, {endereco.Bairro}, {endereco.Localidade}, {endereco.UF}";
+                }
+                else
+                {
+                    Snackbar.Add("Endereço não encontrado para o CEP informado.", Severity.Warning);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao buscar endereço: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
+
+

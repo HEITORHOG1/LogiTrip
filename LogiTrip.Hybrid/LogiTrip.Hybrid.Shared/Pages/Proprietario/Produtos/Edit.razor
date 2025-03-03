@@ -1,0 +1,578 @@
+﻿@page "/proprietario/produtos/edit/{estabelecimentoId:int}/{id:int}"
+@inject IProdutoService ProdutoService
+@inject ICategoriaService CategoriaService
+@inject IOpcaoProdutoService OpcaoProdutoService
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (produto == null)
+{
+    <MudAlert Severity="Severity.Error">Produto não encontrado</MudAlert>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Editar Produto</MudText>
+
+            <MudTabs @bind-ActivePanelIndex="_activeTabIndex"
+                     Rounded="true"
+                     Elevation="2"
+                     ApplyEffectsToContainer="true"
+                     Centered="true"
+                     Color="Color.Primary"
+                     Class="mb-6">
+
+                <!-- ABA DE DETALHES -->
+                <MudTabPanel Text="Detalhes do Produto" Icon="@Icons.Material.Filled.Info" ToolTip="Informações do Produto">
+                    <MudForm @ref="form" @bind-IsValid="@isValid">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">
+                            Edite as informações principais do produto abaixo.
+                        </MudText>
+                        <MudDivider Class="mb-4" />
+
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="produto.Nome"
+                                              Label="Nome"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="Nome é obrigatório"
+                                              MaxLength="100"
+                                              Disabled="@isSaving" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="int" Label="Categoria"
+                                           Required="true"
+                                           RequiredError="Categoria é obrigatória"
+                                           @bind-Value="produto.CategoriaId"
+                                           Variant="Variant.Outlined"
+                                           Disabled="@isSaving">
+                                    @foreach (var categoria in categorias)
+                                    {
+                                        <MudSelectItem Value="@categoria.Id">@categoria.Nome</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudNumericField T="decimal"
+                                                 @bind-Value="produto.Preco"
+                                                 Label="Preço"
+                                                 Variant="Variant.Outlined"
+                                                 Required="true"
+                                                 RequiredError="Preço é obrigatório"
+                                                 Min="0.01M"
+                                                 Format="N2"
+                                                 Culture='new CultureInfo("pt-BR")'
+                                                 AdornmentText="R$"
+                                                 Adornment="Adornment.Start"
+                                                 Step="0.01M"
+                                                 Disabled="@isSaving" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="produto.CodigoDeBarras"
+                                              Label="Código de Barras"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@isSaving" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="produto.Descricao"
+                                              Label="Descrição"
+                                              Variant="Variant.Outlined"
+                                              Lines="3"
+                                              MaxLength="500"
+                                              Disabled="@isSaving" />
+                            </MudItem>
+
+                            <MudItem xs="12" Class="d-flex flex-column gap-4">
+                                @if (!string.IsNullOrEmpty(produto.Imagem) && selectedImage == null)
+                                {
+                                    <div>
+                                        <MudText Typo="Typo.subtitle2">Imagem Atual:</MudText>
+                                        <MudImage Src="@($"{BaseEndPoint.BaseUrlImagem}/{produto.Imagem}")"
+                                                  Width="300"
+                                                  Height="300"
+                                                  ObjectFit="ObjectFit.Cover"
+                                                  Alt="@produto.Nome" />
+                                    </div>
+                                }
+                                else if (selectedImage != null)
+                                {
+                                    <div>
+                                        <MudText Typo="Typo.subtitle2">Nova Imagem:</MudText>
+                                        <MudImage Src="@imagePreviewUrl"
+                                                  Width="300"
+                                                  Height="300"
+                                                  ObjectFit="ObjectFit.Cover"
+                                                  Alt="Preview" />
+                                    </div>
+                                }
+
+                                <div>
+                                    <InputFile id="fileInput" OnChange="OnInputFileChanged" hidden accept=".jpg,.jpeg,.png,.webp" />
+                                    <MudButton HtmlTag="label"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.CloudUpload"
+                                               for="fileInput"
+                                               Disabled="@isSaving">
+                                        Alterar Imagem
+                                    </MudButton>
+                                    @if (selectedImage != null)
+                                    {
+                                        <div class="d-flex align-center mt-2">
+                                            <MudText Class="mr-4">Nova imagem selecionada: @selectedImage.Name</MudText>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                           OnClick="RemoveSelectedImage"
+                                                           Color="Color.Error"
+                                                           Size="Size.Small" />
+                                        </div>
+                                    }
+                                </div>
+                            </MudItem>
+
+                            <MudItem xs="12" Class="d-flex align-center mt-4">
+                                <MudCheckBox T="bool"
+                                             @bind-Checked="produto.Disponivel"
+                                             Label="Produto Disponível"
+                                             Color="Color.Primary"
+                                             Disabled="@isSaving" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudDivider Class="my-6" />
+                            </MudItem>
+
+                            <MudItem xs="12" Class="d-flex justify-end gap-4">
+                                <MudButton Color="Color.Default"
+                                           Variant="Variant.Outlined"
+                                           OnClick="Voltar"
+                                           Disabled="@isSaving"
+                                           StartIcon="@Icons.Material.Filled.ArrowBack">
+                                    Voltar
+                                </MudButton>
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="SaveProduto"
+                                           Disabled="@(!isValid || isSaving)"
+                                           StartIcon="@Icons.Material.Filled.Save">
+                                    @if (isSaving)
+                                    {
+                                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                        <MudText Class="ms-2">Salvando...</MudText>
+                                    }
+                                    else
+                                    {
+                                        @("Salvar")
+                                    }
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+
+                <!-- ABA DE OPÇÕES DO PRODUTO -->
+                <MudTabPanel Text="Opções do Produto" Icon="@Icons.Material.Filled.List" ToolTip="Gerencie Opções">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">
+                        Gerencie as diferentes opções (tamanhos, cores, etc.) oferecidas pelo produto.
+                    </MudText>
+                    <MudDivider Class="mb-4" />
+
+                    <div class="d-flex justify-end mb-3">
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AbrirDialogOpcao">
+                            Adicionar Opção
+                        </MudButton>
+                         <!-- Botão para replicar configurações -->
+                       <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Repeat"
+                               OnClick="ReplicarConfiguracoes"
+                               Disabled="@isLoading">
+                        Replicar Configurações para Categoria
+                    </MudButton>
+
+
+                    </div>
+
+                    <MudTable Items="opcoes" Hover="true" Bordered="true">
+                        <HeaderContent>
+                            <MudTh>Nome</MudTh>
+                            <MudTh>Obrigatório</MudTh>
+                            <MudTh>Ações</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Nome</MudTd>
+                            <MudTd>
+                                <MudSwitch T="bool" @bind-Checked="context.Obrigatorio" Disabled="true"></MudSwitch>
+                            </MudTd>
+                            <MudTd>
+                                <MudButton Size="Size.Small"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.List"
+                                           OnClick="@(() => GerenciarValores(context))">
+                                    Valores
+                                </MudButton>
+                                <MudButton Size="Size.Small"
+                                           Color="Color.Default"
+                                           StartIcon="@Icons.Material.Filled.Edit"
+                                           Class="ml-2"
+                                           OnClick="@(() => EditarOpcao(context))">
+                                    Editar
+                                </MudButton>
+                                <MudButton Size="Size.Small"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Delete"
+                                           Class="ml-2"
+                                           OnClick="@(() => ExcluirOpcao(context))">
+                                    Excluir
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudTabPanel>
+
+                <!-- ABA DE ADICIONAIS DO PRODUTO -->
+                <MudTabPanel Text="Adicionais do Produto" Icon="@Icons.Material.Filled.AddCircleOutline" ToolTip="Gerencie Adicionais">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">
+                        Adicione itens extras que podem ser escolhidos junto ao produto principal.
+                    </MudText>
+                    <MudDivider Class="mb-4" />
+
+                    <div class="d-flex justify-end mb-3">
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AbrirDialogAdicional">
+                            Adicionar Adicional
+                        </MudButton>
+                    </div>
+
+                    <MudTable Items="adicionais" Hover="true" Bordered="true">
+                        <HeaderContent>
+                            <MudTh>Nome</MudTh>
+                            <MudTh>Preço</MudTh>
+                            <MudTh>Disponível</MudTh>
+                            <MudTh>Ações</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Nome</MudTd>
+                            <MudTd>@context.Preco.ToString("C2", new CultureInfo("pt-BR"))</MudTd>
+                            <MudTd>
+                                <MudSwitch T="bool" @bind-Checked="context.Disponivel" Disabled="true"></MudSwitch>
+                            </MudTd>
+                            <MudTd>
+                                <MudButton Size="Size.Small"
+                                           Color="Color.Default"
+                                           StartIcon="@Icons.Material.Filled.Edit"
+                                           OnClick="@(() => EditarAdicional(context))">
+                                    Editar
+                                </MudButton>
+                                <MudButton Size="Size.Small"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Delete"
+                                           Class="ml-2"
+                                           OnClick="@(() => ExcluirAdicional(context))">
+                                    Excluir
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudTabPanel>
+            </MudTabs>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+
+    [Parameter]
+    public int id { get; set; }
+
+    private Produto produto;
+    private IEnumerable<Categoria> categorias = new List<Categoria>();
+    private MudForm form;
+    private bool isValid;
+    private bool isLoading = true;
+    private bool isSaving;
+    private IBrowserFile selectedImage;
+    private string imagePreviewUrl;
+    private int _activeTabIndex = 0;
+
+    private List<OpcaoProduto> opcoes = new();
+    private List<AdicionalProduto> adicionais = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("===== OnInitializedAsync EditProduto =====");
+        Console.WriteLine($"EstabelecimentoId: {estabelecimentoId}, ProdutoId: {id}");
+
+        try
+        {
+            produto = await ProdutoService.GetProdutoByIdAsync(estabelecimentoId, id);
+            Console.WriteLine(produto != null ? "Produto carregado com sucesso" : "Produto não encontrado");
+
+            await LoadCategorias();
+            Console.WriteLine($"Categorias carregadas: {categorias.Count()}");
+
+            if (produto != null)
+            {
+                // Carrega opcoes
+                opcoes = await OpcaoProdutoService.GetOpcoesByProdutoAsync(estabelecimentoId, produto.Id);
+                Console.WriteLine($"Opções carregadas: {opcoes.Count}");
+
+                adicionais = produto.Adicionais?.ToList() ?? new List<AdicionalProduto>();
+                Console.WriteLine($"Adicionais carregados: {adicionais.Count}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar produto: {ex.Message}");
+            Snackbar.Add($"Erro ao carregar produto: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private async Task LoadCategorias()
+    {
+        categorias = await CategoriaService.GetCategoriasByEstabelecimentoAsync(estabelecimentoId);
+        Console.WriteLine($"Categorias no estabelecimento {estabelecimentoId}: {categorias.Count()}");
+    }
+
+    private async Task OnInputFileChanged(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            selectedImage = e.File;
+            var buffer = new byte[selectedImage.Size];
+            using (var stream = selectedImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024))
+            {
+                int bytesRead;
+                int totalBytesRead = 0;
+                while ((bytesRead = await stream.ReadAsync(buffer, totalBytesRead, buffer.Length - totalBytesRead)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                }
+            }
+            imagePreviewUrl = $"data:image/png;base64,{Convert.ToBase64String(buffer)}";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar a imagem: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void RemoveSelectedImage()
+    {
+        selectedImage = null;
+        imagePreviewUrl = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveProduto()
+    {
+        try
+        {
+            await form.Validate();
+            if (form.IsValid)
+            {
+                isSaving = true;
+
+                var sucesso = await ProdutoService.UpdateProdutoAsync(estabelecimentoId, produto, selectedImage);
+                if (sucesso)
+                {
+                    Snackbar.Add("Produto atualizado com sucesso!", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao atualizar o produto.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo($"/proprietario/produtos/index/{estabelecimentoId}");
+    }
+
+    private async void AbrirDialogOpcao()
+    {
+        Console.WriteLine("===== AbrirDialogOpcao Chamado =====");
+        Console.WriteLine($"EstabelecimentoId: {estabelecimentoId}, ProdutoId: {produto?.Id}");
+
+        var parameters = new DialogParameters
+            {
+                ["Opcao"] = new OpcaoProduto(),
+                ["EstabelecimentoId"] = estabelecimentoId,
+                ["ProdutoId"] = produto.Id
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<AdicionarOpcaoDialog>("Adicionar Opção", parameters, options);
+        var result = await dialog.Result;
+
+        Console.WriteLine("===== Resultado do diálogo de opção =====");
+        Console.WriteLine($"Canceled: {result.Canceled}");
+
+        if (!result.Canceled)
+        {
+            Console.WriteLine("Opção adicionada com sucesso, atualizando lista...");
+            opcoes = await OpcaoProdutoService.GetOpcoesByProdutoAsync(estabelecimentoId, produto.Id);
+            Console.WriteLine($"Opções atualizadas: {opcoes.Count}");
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine("Diálogo de opção cancelado");
+        }
+    }
+
+
+    private async void GerenciarValores(OpcaoProduto opcao)
+    {
+        var parameters = new DialogParameters
+            {
+                ["Opcao"] = opcao,
+                ["EstabelecimentoId"] = estabelecimentoId,
+                ["ProdutoId"] = produto.Id
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<GerenciarValoresDialog>("Gerenciar Valores", parameters, options);
+        var result = await dialog.Result;
+        // Após fechar, se necessário, atualizar a lista de opções
+        // opcoes = await OpcaoProdutoService.GetOpcoesByProdutoAsync(estabelecimentoId, produto.Id);
+        StateHasChanged();
+    }
+
+
+    private async void EditarOpcao(OpcaoProduto opcao)
+    {
+        var opcaoClone = new OpcaoProduto
+            {
+                Id = opcao.Id,
+                ProdutoId = opcao.ProdutoId,
+                Nome = opcao.Nome,
+                Obrigatorio = opcao.Obrigatorio
+            };
+
+        var parameters = new DialogParameters
+            {
+                ["Opcao"] = opcaoClone,
+                ["EstabelecimentoId"] = estabelecimentoId,
+                ["ProdutoId"] = produto.Id
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<AdicionarOpcaoDialog>("Editar Opção", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Atualizar a lista de opções
+            opcoes = await OpcaoProdutoService.GetOpcoesByProdutoAsync(estabelecimentoId, produto.Id);
+            StateHasChanged();
+        }
+    }
+
+
+    private async void ExcluirOpcao(OpcaoProduto opcao)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+     "Confirmar Exclusão",
+     $"Tem certeza que deseja excluir a opção '{opcao.Nome}'?",
+     yesText: "Sim", noText: "Não");
+
+        if (confirm ?? false)
+        {
+            bool sucesso = await OpcaoProdutoService.DeleteOpcaoProdutoAsync(estabelecimentoId, produto.Id, opcao.Id);
+            if (sucesso)
+            {
+                Snackbar.Add("Opção excluída com sucesso!", Severity.Success);
+                opcoes.Remove(opcao);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add("Erro ao excluir opção.", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ReplicarConfiguracoes()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Certifique-se de que o produto existe e possui uma categoria válida
+            if (produto == null || produto.CategoriaId <= 0)
+            {
+                Snackbar.Add("Produto ou categoria inválida. Não é possível replicar as configurações.", Severity.Error);
+                return;
+            }
+
+            // Chama o serviço para replicar as configurações
+            bool sucesso = await OpcaoProdutoService.ReplicarOpcoesParaCategoriaAsync(produto.CategoriaId, produto.Id);
+
+            if (sucesso)
+            {
+                Snackbar.Add("Configurações replicadas com sucesso para todos os produtos da categoria!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Erro ao replicar configurações.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao replicar configurações: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Métodos para gerenciar Adicionais
+    private void AbrirDialogAdicional()
+    {
+        // Abrir diálogo para adicionar novo adicional
+    }
+
+    private void EditarAdicional(AdicionalProduto adicional)
+    {
+        // Editar o adicional selecionado
+    }
+
+    private void ExcluirAdicional(AdicionalProduto adicional)
+    {
+        // Excluir o adicional selecionado
+    }
+}

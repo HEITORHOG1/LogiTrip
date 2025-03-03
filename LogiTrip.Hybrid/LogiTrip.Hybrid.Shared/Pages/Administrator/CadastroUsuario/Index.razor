@@ -1,0 +1,138 @@
+﻿@page "/Administrator/CadastroUsuario/index"
+@using LogiTrip.Model.Entity
+@using LogiTrip.Hybrid.Shared.Endpoints
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Elevation="3" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.h5">Usuários Administradores e Proprietários</MudText>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenCreatePage" StartIcon="@Icons.Material.Filled.Add">
+                        Adicionar Usuário
+                    </MudButton>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Campo de Pesquisa -->
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Pesquisar..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              DebounceInterval="300"
+                              Class="mb-3" />
+            </MudItem>
+        </MudGrid>
+
+        <!-- Tabela de Usuários -->
+        <MudTable Items="@FilteredUsers" Dense="true" Hover="true" Loading="@IsLoading" SortLabel="Ordenar por">
+            <HeaderContent>
+                <MudTh>
+                    <MudTableSortLabel SortBy="(ApplicationUser u) => u.NomeUsuario" InitialDirection="SortDirection.Ascending">
+                        Nome
+                    </MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="(ApplicationUser u) => u.Email">Email</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="(ApplicationUser u) => u.CPF_CNPJ">CPF/CNPJ</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="(ApplicationUser u) => u.Telefone">Telefone</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="(ApplicationUser u) => u.Ativo">Ativo</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="(ApplicationUser u) => u.DataDeCadastro">Data de Cadastro</MudTableSortLabel>
+                </MudTh>
+
+                <MudTh>Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome">@context.NomeUsuario</MudTd>
+                <MudTd DataLabel="Email">@context.Email</MudTd>
+                <MudTd DataLabel="CPF/CNPJ">@context.CPF_CNPJ</MudTd>
+                <MudTd DataLabel="Telefone">@context.Telefone</MudTd>
+                <MudTd DataLabel="Ativo">@(context.Ativo ? "Sim" : "Não")</MudTd>
+                <MudTd DataLabel="Data de Cadastro">@context.DataDeCadastro.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd>
+                    <MudTooltip Text="Editar">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Info"
+                                       OnClick="() => OpenEditDialog(context)" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 5, 10, 25 }" />
+            </PagerContent>
+        </MudTable>
+
+        <!-- Mensagens de Feedback -->
+        @if (IsLoading)
+        {
+            <MudText Typo="Typo.body2" Class="mt-4">Carregando usuários...</MudText>
+        }
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-4">@ErrorMessage</MudText>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<ApplicationUser> Users { get; set; } = new();
+    private string searchString = string.Empty;
+    private bool IsLoading { get; set; } = false;
+    private string ErrorMessage { get; set; } = string.Empty;
+
+    // Propriedade para Pesquisa
+    private IEnumerable<ApplicationUser> FilteredUsers =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? Users
+            : Users.Where(u =>
+                (u.NomeUsuario?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.CPF_CNPJ?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.Telefone?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            IsLoading = true;
+            var response = await HttpClient.GetFromJsonAsync<List<ApplicationUser>>(APIAuthEndpoints.GetUsersAdminProprietario);
+            Users = response ?? new List<ApplicationUser>();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao carregar usuários: {ex.Message}";
+            Snackbar.Add(ErrorMessage, Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OpenCreatePage() => NavigationManager.NavigateTo("/Administrator/CadastroUsuario/create");
+
+    private void OpenEditDialog(ApplicationUser user)
+    {
+        NavigationManager.NavigateTo($"/Administrator/CadastroUsuario/edit/{user.Id}");
+    }
+}

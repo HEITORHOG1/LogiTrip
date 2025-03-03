@@ -1,0 +1,197 @@
+﻿@page "/proprietario/produtos/create/{estabelecimentoId:int}"
+@inject IProdutoService ProdutoService
+@inject ICategoriaService CategoriaService
+
+
+
+<MudGrid>
+    <MudItem xs="12">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h5">Adicionar Novo Produto</MudText>
+            
+        </div>
+    </MudItem>
+</MudGrid>
+
+<MudForm @ref="form" @bind-IsValid="@isValid">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="novoProduto.Nome"
+                          Label="Nome"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Nome é obrigatório"
+                          MaxLength="100"
+                          Disabled="@isLoading" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudSelect T="int" Label="Categoria"
+                       Required="true"
+                       RequiredError="Categoria é obrigatória"
+                       @bind-Value="novoProduto.CategoriaId"
+                       Variant="Variant.Outlined"
+                       Disabled="@isLoading">
+                @foreach (var categoria in categorias)
+                {
+                    <MudSelectItem Value="@categoria.Id">@categoria.Nome</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudNumericField T="decimal"
+                             @bind-Value="novoProduto.Preco"
+                             Label="Preço"
+                             Variant="Variant.Outlined"
+                             Required="true"
+                             RequiredError="Preço é obrigatório"
+                             Min="0.01M"
+                             Format="N2"
+                             Culture='new System.Globalization.CultureInfo("pt-BR")'
+                             AdornmentText="R$"
+                             Adornment="Adornment.Start"
+                             Step="0.01M" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="novoProduto.CodigoDeBarras"
+                          Label="Código de Barras"
+                          Variant="Variant.Outlined"
+                          Disabled="@isLoading" />
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudTextField @bind-Value="novoProduto.Descricao"
+                          Label="Descrição"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          MaxLength="500"
+                          Disabled="@isLoading" />
+        </MudItem>
+
+        <MudItem xs="12">
+            <InputFile id="fileInput" OnChange="OnInputFileChanged" hidden accept=".jpg,.jpeg,.png,.webp" />
+            <MudButton HtmlTag="label"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudUpload"
+                       for="fileInput"
+                       Disabled="@isLoading">
+                Carregar Imagem
+            </MudButton>
+            @if (selectedImage != null)
+            {
+                <MudText Class="ml-4">@selectedImage.Name</MudText>
+            }
+        </MudItem>
+
+        <MudItem xs="12" Class="d-flex align-center">
+            <MudCheckBox T="bool"
+                         @bind-Checked="novoProduto.Disponivel"
+                         Label="Produto Disponível"
+                         Color="Color.Primary"
+                         Disabled="@isLoading" />
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-6" />
+
+    <MudGrid>
+        <MudItem xs="12" Class="d-flex justify-end gap-4">
+            <MudButton Color="Color.Default"
+                       Variant="Variant.Outlined"
+                       OnClick="Voltar"
+                       Disabled="@isLoading"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
+                Voltar
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SaveProduto"
+                       Disabled="@(!isValid || isLoading || selectedImage == null)"
+                       StartIcon="@Icons.Material.Filled.Save">
+                @if (isLoading)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Salvando...</MudText>
+                }
+                else
+                {
+                    @("Salvar")
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudForm>
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+    private Produto novoProduto = new() { Disponivel = true };
+    private IEnumerable<Categoria> categorias = new List<Categoria>();
+    private MudForm form;
+    private bool isValid;
+    private bool isLoading;
+    private IBrowserFile selectedImage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        novoProduto.EstabelecimentoId = estabelecimentoId;
+        await LoadCategorias();
+    }
+
+    private async Task LoadCategorias()
+    {
+        categorias = await CategoriaService.GetCategoriasByEstabelecimentoAsync(estabelecimentoId);
+    }
+
+    private void OnInputFileChanged(InputFileChangeEventArgs e)
+    {
+        selectedImage = e.File;
+        StateHasChanged();
+    }
+
+    private async Task SaveProduto()
+    {
+        try
+        {
+            await form.Validate();
+            if (form.IsValid && selectedImage != null)
+            {
+                isLoading = true;
+
+                // Supondo que o serviço retorne o Id do produto criado
+                var produtoId = await ProdutoService.CreateProdutoAsync(estabelecimentoId, novoProduto, selectedImage);
+
+                if (produtoId)
+                {
+                    Snackbar.Add("Produto cadastrado com sucesso!", Severity.Success);
+                    // Ao invés de voltar para index, vamos para a página de edição com abas
+                    NavigationManager.NavigateTo($"/proprietario/produtos/index/{estabelecimentoId}");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao salvar o produto.", Severity.Warning);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo($"/proprietario/produtos/index/{estabelecimentoId}");
+    }
+
+    
+
+}

@@ -1,0 +1,124 @@
+﻿@page "/proprietario/categorias/index/{estabelecimentoId:int}"
+@inject ICategoriaService CategoriaService
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="3" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.h5">Categorias</MudText>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="NavigateToCreatePage">
+                        Adicionar Categoria
+                    </MudButton>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <MudTable Items="@PaginatedCategorias" Dense="true" Striped="true" Bordered="true" Loading="@isLoading">
+            <ToolBarContent>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Pesquisar..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              IconSize="Size.Medium"
+                              Class="mt-0"
+                              Immediate="true"
+                              DebounceInterval="500" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Nome</MudTh>
+                <MudTh>Descrição</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Data Cadastro</MudTh>
+                <MudTh Style="text-align:center">Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Nome</MudTd>
+                <MudTd>@context.Descricao</MudTd>
+                <MudTd>
+                    <MudText Color="@(context.Ativo ? Color.Success : Color.Error)">
+                        @(context.Ativo ? "Ativo" : "Inativo")
+                    </MudText>
+                </MudTd>
+                <MudTd>@context.DataCadastro.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd Style="text-align:center">
+                    <MudTooltip Text="Editar">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="() => EditarCategoria(context.Id)" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 5, 10, 25, 50 }" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+    private List<Categoria> categorias = new();
+    private bool isLoading = true;
+    private string searchString = "";
+    private int currentPage = 1;
+    private int pageSize = 10;
+
+    private IEnumerable<Categoria> FilteredCategorias =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? categorias
+            : categorias.Where(c =>
+                (c.Nome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.Descricao?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+
+    private int PageCount => (int)Math.Ceiling((double)FilteredCategorias.Count() / pageSize);
+    private IEnumerable<Categoria> PaginatedCategorias =>
+        FilteredCategorias
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategorias();
+    }
+
+    private async Task LoadCategorias()
+    {
+        try
+        {
+            isLoading = true;
+            categorias = (await CategoriaService.GetCategoriasByEstabelecimentoAsync(estabelecimentoId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar categorias: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NavigateToCreatePage()
+    {
+        NavigationManager.NavigateTo($"/proprietario/categorias/create/{estabelecimentoId}");
+    }
+
+    private void EditarCategoria(int id)
+    {
+        NavigationManager.NavigateTo($"/proprietario/categorias/edit/{estabelecimentoId}/{id}");
+    }
+}

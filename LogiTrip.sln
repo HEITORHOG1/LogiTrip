@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35103.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{17E72EA6-C6CB-48D0-9F9D-45B19169CA2B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogiTrip.Hybrid", "LogiTrip.Hybrid\LogiTrip.Hybrid\LogiTrip.Hybrid.csproj", "{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogiTrip.Hybrid.Shared", "LogiTrip.Hybrid\LogiTrip.Hybrid.Shared\LogiTrip.Hybrid.Shared.csproj", "{32B75922-9EF0-4CF9-8246-CECFB8870C29}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogiTrip.Hybrid.Web", "LogiTrip.Hybrid\LogiTrip.Hybrid.Web\LogiTrip.Hybrid.Web.csproj", "{17FE9471-22A1-4D3E-9A7B-F7B93ADFF15E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Arquitetura", "Arquitetura", "{72C62624-D2B3-4D23-9433-7DEA32A6E432}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogiTrip.Model", "LogiTrip.Model\LogiTrip.Model.csproj", "{0BEB1A09-A8EE-47E3-9ED6-18B47119F6DD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{32B75922-9EF0-4CF9-8246-CECFB8870C29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32B75922-9EF0-4CF9-8246-CECFB8870C29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32B75922-9EF0-4CF9-8246-CECFB8870C29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32B75922-9EF0-4CF9-8246-CECFB8870C29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17FE9471-22A1-4D3E-9A7B-F7B93ADFF15E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17FE9471-22A1-4D3E-9A7B-F7B93ADFF15E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17FE9471-22A1-4D3E-9A7B-F7B93ADFF15E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17FE9471-22A1-4D3E-9A7B-F7B93ADFF15E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BEB1A09-A8EE-47E3-9ED6-18B47119F6DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BEB1A09-A8EE-47E3-9ED6-18B47119F6DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BEB1A09-A8EE-47E3-9ED6-18B47119F6DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BEB1A09-A8EE-47E3-9ED6-18B47119F6DD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7F96EA27-68EF-4E16-9F2C-80242AAEF03D} = {17E72EA6-C6CB-48D0-9F9D-45B19169CA2B}
+		{32B75922-9EF0-4CF9-8246-CECFB8870C29} = {17E72EA6-C6CB-48D0-9F9D-45B19169CA2B}
+		{17FE9471-22A1-4D3E-9A7B-F7B93ADFF15E} = {17E72EA6-C6CB-48D0-9F9D-45B19169CA2B}
+		{72C62624-D2B3-4D23-9433-7DEA32A6E432} = {17E72EA6-C6CB-48D0-9F9D-45B19169CA2B}
+		{0BEB1A09-A8EE-47E3-9ED6-18B47119F6DD} = {72C62624-D2B3-4D23-9433-7DEA32A6E432}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FCA1C5FB-D83C-45CA-B48E-3FB76D0D602A}
+	EndGlobalSection
+EndGlobal

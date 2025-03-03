@@ -1,0 +1,196 @@
+﻿@page "/proprietario/usuarios/edit/{id}/{estabelecimentoId:int}"
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (usuarioModel == null)
+{
+    <MudAlert Severity="Severity.Error">Usuário não encontrado</MudAlert>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudText Typo="Typo.h5" GutterBottom>Editar Usuário</MudText>
+            <MudForm @ref="form" @bind-IsValid="@isValid">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.NomeUsuario"
+                                      Label="Nome do Usuário"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Required="true"
+                                      RequiredError="Nome é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.UserName"
+                                      Label="Username"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Required="true"
+                                      RequiredError="Username é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.Email"
+                                      Label="Email"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.CPF_CNPJ"
+                                      Label="CPF"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Mask="@cpfMask"
+                                      Placeholder="000.000.000-00"
+                                      HelperText="Digite no formato: 000.000.000-00"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.Endereco"
+                                      Label="Endereço"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.CEP"
+                                      Label="CEP"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuarioModel.Telefone"
+                                      Label="Telefone"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Mask="@phoneMask"
+                                      Placeholder="(00) 00000-0000"
+                                      HelperText="Digite no formato: (00) 00000-0000"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudCheckBox T="bool?" @bind-Checked="usuarioModel.Ativo"
+                                     Label="Ativo"
+                                     Color="Color.Primary"
+                                     Disabled="@isLoading" />
+                    </MudItem>
+                </MudGrid>
+                <MudDivider Class="my-6" />
+                <MudGrid>
+                    <MudItem xs="12" Class="d-flex justify-end gap-4">
+                        <MudButton Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   OnClick="Voltar"
+                                   Disabled="@isLoading"
+                                   StartIcon="@Icons.Material.Filled.ArrowBack">
+                            Voltar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="Salvar"
+                                   Disabled="@(!isValid || isLoading)"
+                                   StartIcon="@Icons.Material.Filled.Save">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Salvando...</MudText>
+                            }
+                            else
+                            {
+                                @("Salvar")
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public string id { get; set; }
+
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+
+    private MudForm form;
+    private UpdateUsuarioModel usuarioModel = new UpdateUsuarioModel();
+    private PatternMask cpfMask = new PatternMask("000.000.000-00") { CleanDelimiters = true };
+    private PatternMask phoneMask = new PatternMask("(00) 00000-0000");
+    private bool isValid;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsuario();
+    }
+
+    private async Task LoadUsuario()
+    {
+        try
+        {
+            usuarioModel = await AuthService.GetUsuarioByIdAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar usuário: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo($"/proprietario/usuarios/index/{estabelecimentoId}");
+    }
+
+    private async Task Salvar()
+    {
+        try
+        {
+            await form.Validate();
+            if (form.IsValid)
+            {
+                isLoading = true;
+
+                // Remove delimiters from CPF and Telephone
+                usuarioModel.CPF_CNPJ = usuarioModel.CPF_CNPJ.Replace(".", "").Replace("-", "");
+                usuarioModel.Telefone = usuarioModel.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
+
+                var sucesso = await AuthService.UpdateUsuarioAsync(usuarioModel);
+                if (sucesso)
+                {
+                    Snackbar.Add("Usuário atualizado com sucesso!", Severity.Success);
+                    NavigationManager.NavigateTo($"/proprietario/usuarios/index/{estabelecimentoId}");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao atualizar usuário.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
+
+
+
+

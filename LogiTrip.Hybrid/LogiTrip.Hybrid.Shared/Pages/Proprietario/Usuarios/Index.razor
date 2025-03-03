@@ -1,0 +1,156 @@
+﻿@page "/proprietario/usuarios/index/{estabelecimentoId:int}"
+@inject IAuthService AuthService
+@inject IEstabelecimentoService EstabelecimentoService
+
+
+@if (!AuthService.IsLoggedIn)
+{
+    <MudText Typo="Typo.h6" Color="Color.Error">Você não está logado. Por favor, faça login para acessar esta página.</MudText>
+}
+else if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="3" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.h5">Usuários do Estabelecimento</MudText>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PersonAdd"
+                               OnClick="InsertUser">
+                        Inserir Usuário
+                    </MudButton>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <MudTable Items="@PaginatedUsers" Dense="true" Striped="true" Bordered="true" Loading="@isLoading"
+                  Hover="true" CustomFooter="true">
+            <ToolBarContent>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Pesquisar por nome, CPF, email..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              IconSize="Size.Medium"
+                              Class="mt-0"
+                              Immediate="true"
+                              DebounceInterval="500" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Nome</MudTh>
+                <MudTh>CPF</MudTh>
+                <MudTh>Telefone</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Função</MudTh>
+                <MudTh Style="text-align:center">Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.NomeUsuario</MudTd>
+                <MudTd>@context.CPF_CNPJ</MudTd>
+                <MudTd>@context.Telefone</MudTd>
+                <MudTd>
+                    <MudText Color="@(context.Ativo ? Color.Success : Color.Error)">
+                        @(context.Ativo ? "Ativo" : "Inativo")
+                    </MudText>
+                </MudTd>
+                <MudTd>@context.Email</MudTd>
+                <MudTd>
+                    <MudText>@GetRoleDisplayName(context.Role)</MudText>
+                </MudTd>
+                <MudTd Style="text-align:center">
+                    <MudTooltip Text="Editar Usuário">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="() => EditUser(context.Id)" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 5, 10, 25, 50 }" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+    private List<Usuario> users = new List<Usuario>();
+    private bool isLoading = true;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private string searchString = "";
+
+    private IEnumerable<Usuario> FilteredUsers => string.IsNullOrWhiteSpace(searchString)
+        ? users
+        : users.Where(u =>
+             (u.NomeUsuario?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+          || (u.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+          || (u.CPF_CNPJ?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+          || (u.Telefone?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+        );
+
+    private int pageCount => (int)Math.Ceiling((double)FilteredUsers.Count() / pageSize);
+    private IEnumerable<Usuario> PaginatedUsers => FilteredUsers.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            if (!AuthService.IsLoggedIn)
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            isLoading = true;
+            users = (await EstabelecimentoService.GetUsuariosByEstabelecimentoAsync(estabelecimentoId)).ToList();
+
+            if (!users.Any())
+            {
+                Snackbar.Add("Nenhum usuário encontrado para este estabelecimento", Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar usuários: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetRoleDisplayName(string role)
+    {
+        return role switch
+        {
+            "Proprietario" => "Proprietário",
+            "Gerente" => "Gerente",
+            "Cliente" => "Cliente",
+            _ => role
+        };
+    }
+
+    private void InsertUser()
+    {
+        NavigationManager.NavigateTo($"/proprietario/usuarios/create/{estabelecimentoId}");
+    }
+
+    private void EditUser(string userId)
+    {
+        NavigationManager.NavigateTo($"/proprietario/usuarios/edit/{userId}/{estabelecimentoId}");
+    }
+}

@@ -1,0 +1,169 @@
+﻿@using LogiTrip.Hybrid.Shared.Services.Interfaces
+@using LogiTrip.Model.Entity
+@using LogiTrip.Model.Enums
+@inject IAuthService AuthService
+@inject IEstabelecimentoService EstabelecimentoService
+@inject NavigationManager NavigationManager
+@using MudBlazor
+@inject ISnackbar Snackbar
+
+@if (!isAuthenticated)
+{
+    <MudText Typo="Typo.h6" Color="Color.Error">Você não está logado. Por favor, faça login para acessar o menu.</MudText>
+    <MudButton OnClick="HandleRedirect">Redirecionar</MudButton>
+}
+else
+{
+    <MudNavMenu>
+        @switch (userRole)
+        {
+            case Role.Proprietario:
+                <MudSelect T="Estabelecimento" Label="Meus Estabelecimentos" @bind-Value="selectedEstabelecimento">
+                    @foreach (var estabelecimento in estabelecimentos)
+                    {
+                        <MudSelectItem T="Estabelecimento" Value="@estabelecimento">@estabelecimento.NomeFantasia</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNavLink Href="/proprietario-dashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+                <MudNavLink Href="/proprietario/estabelecimentos/index" Icon="@Icons.Material.Filled.Store" @onclick="GerenciarEstabelecimento">Estabelecimentos</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.SupervisorAccount" @onclick="GerenciarUsuarios">Gerenciar Usuários</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.LocalShipping" @onclick="GerenciarFornecedores">Gerenciar Fornecedores</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.Category" @onclick="GerenciarCategorias">Gerenciar Categorias</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.Inventory2" @onclick="GerenciarProdutos">Gerenciar Produtos</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.Receipt" @onclick="MostrarMensagemNaoImplementado">Notas Fiscais</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.SwapHorizontalCircle" @onclick="MostrarMensagemNaoImplementado">Movimentações de Estoque</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.DeliveryDining" @onclick="MostrarMensagemNaoImplementado">Entregadores</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.Assignment" @onclick="MostrarMensagemNaoImplementado">Pedidos</MudNavLink>
+                break;
+            case Role.Gerente:
+               
+                break;
+            case Role.Administrador:
+                <MudNavLink Href="/administrator-dashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Filled.Person" @onclick="GerenciarUsuariosAdmin">Cadastro de Usuário</MudNavLink>
+                break;
+        }
+    </MudNavMenu>
+}
+
+@code {
+    private List<Estabelecimento> estabelecimentos = new List<Estabelecimento>();
+    private Estabelecimento selectedEstabelecimento;
+    private bool isAuthenticated;
+    private Role userRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            isAuthenticated = AuthService.IsLoggedIn;
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            var user = await AuthService.GetUserAsync();
+            if (user == null)
+            {
+                isAuthenticated = false;
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            userRole = AuthService.GetUserRole();
+            if (userRole == Role.Proprietario)
+            {
+                await LoadEstabelecimentos(user.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar dados: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadEstabelecimentos(string userId)
+    {
+        try
+        {
+            estabelecimentos = (await EstabelecimentoService.GetEstabelecimentosByProprietarioAsync(userId))?.ToList()
+                ?? new List<Estabelecimento>();
+
+            if (!estabelecimentos.Any())
+            {
+                Snackbar.Add("Nenhum estabelecimento encontrado.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar estabelecimentos: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void HandleRedirect()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void GerenciarUsuarios()
+    {
+        if (selectedEstabelecimento == null || selectedEstabelecimento.Id == 0)
+        {
+            Snackbar.Add("Selecione um estabelecimento válido.", Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo($"/proprietario/usuarios/index/{selectedEstabelecimento.Id}");
+    }
+
+    private void GerenciarFornecedores()
+    {
+        if (selectedEstabelecimento == null || selectedEstabelecimento.Id == 0)
+        {
+            Snackbar.Add("Selecione um estabelecimento válido.", Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo($"/proprietario/Fornecedores/index/{selectedEstabelecimento.Id}");
+    }
+
+    private void GerenciarCategorias()
+    {
+        if (selectedEstabelecimento == null || selectedEstabelecimento.Id == 0)
+        {
+            Snackbar.Add("Selecione um estabelecimento válido.", Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo($"/proprietario/categorias/index/{selectedEstabelecimento.Id}");
+    }
+
+    private void GerenciarProdutos()
+    {
+        if (selectedEstabelecimento == null || selectedEstabelecimento.Id == 0)
+        {
+            Snackbar.Add("Selecione um estabelecimento válido.", Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo($"/proprietario/produtos/index/{selectedEstabelecimento.Id}");
+    }
+
+    private void GerenciarEstabelecimento()
+    {
+        NavigationManager.NavigateTo($"/proprietario/estabelecimentos/index");
+    }
+
+    private void MostrarMensagemNaoImplementado()
+    {
+        Snackbar.Add("Esta funcionalidade ainda não está implementada.", Severity.Info);
+    }
+
+    private void GerenciarUsuariosAdmin()
+    {
+        NavigationManager.NavigateTo($"/Administrator/CadastroUsuario/index");
+    }
+}
+

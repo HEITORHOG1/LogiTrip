@@ -1,0 +1,131 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<!-- Estes provedores devem ficar sozinhos, cada um auto-fechado -->
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    @if (AuthService.IsLoggedIn)
+    {
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           OnClick="DrawerToggle"
+                           Edge="Edge.Start"
+                           Class="mr-3" />
+
+            <MudImage Src="/images/logo.png" Height="40" Alt="Logo" Class="mr-4" />
+            <MudText Typo="Typo.h5">Logi Trip</MudText>
+            <MudSpacer />
+
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="ml-3">
+                <ActivatorContent>
+                    <MudButton StartIcon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Class="d-flex align-center">
+                        @AuthService.CurrentUser.NomeUsuario
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="ml-1" />
+                    </MudButton>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Person">Meu Perfil</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Settings">Configurações</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="ConfirmLogout">
+                        Sair
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen"
+                   Elevation="2"
+                   ClipMode="DrawerClipMode.Always"
+                   Variant="@DrawerVariant.Mini">
+            <NavMenu />
+        </MudDrawer>
+    }
+    else
+    {
+        <MudAppBar Elevation="1">
+            <MudImage Src="/images/logo.png" Height="40" Alt="Logo" Class="mr-4" />
+            <MudText Typo="Typo.h5">Logi Trip</MudText>
+        </MudAppBar>
+    }
+
+    <MudMainContent Class="pa-6 pt-16">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+
+    <MudScrollToTop>
+        <MudFab Color="Color.Primary" Icon="@Icons.Material.Filled.ArrowUpward" />
+    </MudScrollToTop>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeAuthState();
+        }
+    }
+
+    private async Task InitializeAuthState()
+    {
+        try
+        {
+            await AuthService.InitializeAuthStateAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao inicializar estado de autenticação: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    private async Task ConfirmLogout()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Confirmar Saída",
+            "Tem certeza que deseja sair?",
+            yesText: "Sim",
+            noText: "Não",
+            options: new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (result ?? false)
+        {
+            await Logout();
+        }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            Snackbar.Add("Logout realizado com sucesso!", Severity.Success);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao realizar logout: {ex.Message}", Severity.Error);
+        }
+    }
+}

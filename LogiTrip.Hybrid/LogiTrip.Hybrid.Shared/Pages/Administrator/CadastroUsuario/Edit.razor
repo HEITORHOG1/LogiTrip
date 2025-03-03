@@ -1,0 +1,151 @@
+﻿@page "/Administrator/CadastroUsuario/edit/{Id:guid}"
+@using LogiTrip.Model.Entity
+@using LogiTrip.Model.Requests
+@inject IAuthService AuthService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudPaper Class="pa-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Editar Usuário</MudText>
+
+        <MudForm @ref="form" Model="@EditingUser">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="EditingUser.UserName"
+                                  Label="Username"
+                                  Disabled="true"
+                                  Required="true"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="EditingUser.Email"
+                                  Label="Email"
+                                  Required="true"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="EditingUser.NomeUsuario"
+                                  Label="Nome Completo"
+                                  Required="true"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="EditingUser.CPF_CNPJ"
+                                  Label="CPF/CNPJ"
+                                  Disabled="true"
+                                  Mask="@(new PatternMask("000.000.000-00"))"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="EditingUser.Telefone"
+                                  Label="Telefone"
+                                  Mask="@(new PatternMask("(00) 00000-0000"))" />
+                </MudItem>
+
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="EditingUser.Ativo" Label="Ativo" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <div class="d-flex justify-end">
+                <MudButton OnClick="UpdateUser"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ml-2">Salvando...</MudText>
+                    }
+                    else
+                    {
+                        @("Salvar")
+                    }
+                </MudButton>
+            </div>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private MudForm form;
+    private UpdateUsuarioModel EditingUser { get; set; } = new();
+    private bool isSaving = false;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            isLoading = true;
+            var user = await AuthService.GetUsuarioByIdAsync(Id.ToString());
+            if (user != null)
+            {
+                EditingUser = user;
+            }
+            else
+            {
+                Snackbar.Add("Usuário não encontrado.", Severity.Warning);
+                NavigationManager.NavigateTo("/Administrator/CadastroUsuario/index");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar dados do usuário: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/Administrator/CadastroUsuario/index");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task UpdateUser()
+    {
+        await form.Validate();
+        if (!form.IsValid)
+        {
+            Snackbar.Add("O formulário contém erros. Por favor, corrija antes de prosseguir.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+            var success = await AuthService.UpdateUsuarioAsync(EditingUser);
+            if (success)
+            {
+                Snackbar.Add("Usuário atualizado com sucesso!", Severity.Success);
+                NavigationManager.NavigateTo("/Administrator/CadastroUsuario/index");
+            }
+            else
+            {
+                Snackbar.Add("Erro ao atualizar usuário.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro inesperado: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,145 @@
+﻿@page "/Administrator/CadastroUsuario/create"
+@using LogiTrip.Model.Requests
+@using LogiTrip.Model.Enums
+@inject IAuthService AuthService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudPaper Class="pa-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Cadastro de Usuário Administrativo</MudText>
+
+        <MudForm @ref="form" Model="@model">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.Username"
+                                  Label="Username"
+                                  Required="true"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.Email"
+                                  Label="Email"
+                                  Required="true"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.Password"
+                                  Label="Senha"
+                                  Required="true"
+                                  InputType="InputType.Password"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.NomeUsuario"
+                                  Label="Nome Completo"
+                                  Required="true"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.CPF_CNPJ"
+                                  Label="CPF/CNPJ"
+                                  Required="true"
+                                  Mask="@(new PatternMask("000.000.000-00"))"
+                                  RequiredError="Campo obrigatório" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.Telefone"
+                                  Label="Telefone"
+                                  Mask="@(new PatternMask("(00) 00000-0000"))" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.CEP"
+                                  Label="CEP"
+                                  Mask="@(new PatternMask("00000-000"))" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="model.Endereco"
+                                  Label="Endereço"
+                                  Lines="2" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <!-- MudSelect corrigido para trabalhar com o tipo TipoUsuario -->
+                    <MudSelect @bind-Value="model.TipoUsuario" Label="Tipo de Usuário" Required="true">
+                        <MudSelectItem Value="TipoUsuario.Administrador">Administrador</MudSelectItem>
+                        <MudSelectItem Value="TipoUsuario.Proprietario">Proprietário</MudSelectItem>
+                    </MudSelect>
+
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <div class="d-flex justify-end">
+                <MudButton OnClick="Cadastrar"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ml-2">Salvando...</MudText>
+                    }
+                    else
+                    {
+                        @("Cadastrar")
+                    }
+                </MudButton>
+            </div>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private RegisterRequestAdminProprietario model = new RegisterRequestAdminProprietario();
+    private bool isSaving = false;
+
+    private async Task Cadastrar()
+    {
+        // Valida o formulário antes de prosseguir
+        await form.Validate();
+
+        if (form.IsValid)
+        {
+            try
+            {
+                isSaving = true;
+
+                // Chama o serviço de autenticação para registrar o usuário
+                var success = await AuthService.RegisterAdminProrietarioAsync(model);
+
+                if (success)
+                {
+                    Snackbar.Add("Usuário cadastrado com sucesso!", Severity.Success);
+                    NavigationManager.NavigateTo("/Administrator/CadastroUsuario/index");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao cadastrar usuário. Verifique o retorno do serviço.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erro inesperado: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                isSaving = false;
+            }
+        }
+        else
+        {
+            Snackbar.Add("O formulário contém erros. Por favor, corrija antes de prosseguir.", Severity.Warning);
+        }
+    }
+}
+}

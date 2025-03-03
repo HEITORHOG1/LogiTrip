@@ -1,0 +1,125 @@
+﻿@inherits ComponentBase
+@using MudBlazor
+@using LogiTrip.Model.Entity
+@using System.Globalization
+@inject ISnackbar Snackbar
+@inject IOpcaoProdutoService OpcaoProdutoService
+
+<MudDialog MaxWidth="MaxWidth.Medium">
+    <TitleContent>
+        Gerenciar Valores da Opção: @Opcao.Nome
+    </TitleContent>
+    <DialogContent>
+        <div class="d-flex justify-end mb-3">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" OnClick="AbrirDialogValor">
+                Adicionar Valor
+            </MudButton>
+        </div>
+
+        <MudTable Items="valores" Hover="true" Bordered="true">
+            <HeaderContent>
+                <MudTh>Descrição</MudTh>
+                <MudTh>Preço Adicional</MudTh>
+                <MudTh>Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Descricao</MudTd>
+                <MudTd>@context.PrecoAdicional.ToString("C2", new CultureInfo("pt-BR"))</MudTd>
+                <MudTd>
+                    <MudButton Size="Size.Small" Color="Color.Default" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => EditarValor(context))">
+                        Editar
+                    </MudButton>
+                    <MudButton Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" Class="ml-2" OnClick="@(() => ExcluirValor(context))">
+                        Excluir
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Fechar">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance DialogInstance { get; set; }
+    [Parameter] public OpcaoProduto Opcao { get; set; }
+    [Parameter] public int EstabelecimentoId { get; set; }
+    [Parameter] public int ProdutoId { get; set; }
+
+    private List<ValorOpcaoProduto> valores = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Carregar valores da opção
+        valores = await OpcaoProdutoService.GetValoresByOpcaoAsync(EstabelecimentoId, ProdutoId, Opcao.Id);
+    }
+
+    private void Fechar()
+    {
+        DialogInstance.Cancel();
+    }
+
+    private async void AbrirDialogValor()
+    {
+        var parameters = new DialogParameters
+            {
+                ["Valor"] = new ValorOpcaoProduto(),
+                ["EstabelecimentoId"] = EstabelecimentoId,
+                ["ProdutoId"] = ProdutoId,
+                ["OpcaoId"] = Opcao.Id
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<AdicionarValorDialog>("Adicionar Valor", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            valores = await OpcaoProdutoService.GetValoresByOpcaoAsync(EstabelecimentoId, ProdutoId, Opcao.Id);
+            StateHasChanged();
+        }
+    }
+
+    private async void EditarValor(ValorOpcaoProduto valor)
+    {
+        var valorClonado = new ValorOpcaoProduto
+            {
+                Id = valor.Id,
+                OpcaoProdutoId = valor.OpcaoProdutoId,
+                Descricao = valor.Descricao,
+                PrecoAdicional = valor.PrecoAdicional
+            };
+
+        var parameters = new DialogParameters
+            {
+                ["Valor"] = valorClonado,
+                ["EstabelecimentoId"] = EstabelecimentoId,
+                ["ProdutoId"] = ProdutoId,
+                ["OpcaoId"] = Opcao.Id
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<AdicionarValorDialog>("Editar Valor", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            valores = await OpcaoProdutoService.GetValoresByOpcaoAsync(EstabelecimentoId, ProdutoId, Opcao.Id);
+            StateHasChanged();
+        }
+    }
+
+    private async void ExcluirValor(ValorOpcaoProduto valor)
+    {
+        bool sucesso = await OpcaoProdutoService.DeleteValorOpcaoProdutoAsync(EstabelecimentoId, ProdutoId, Opcao.Id, valor.Id);
+        if (sucesso)
+        {
+            Snackbar.Add("Valor excluído com sucesso!", Severity.Success);
+            valores.Remove(valor);
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add("Erro ao excluir valor.", Severity.Error);
+        }
+    }
+}

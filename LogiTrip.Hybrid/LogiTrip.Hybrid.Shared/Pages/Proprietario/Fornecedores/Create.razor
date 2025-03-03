@@ -1,0 +1,178 @@
+﻿@page "/proprietario/Fornecedores/create/{estabelecimentoId:int}"
+@inject IFornecedorService FornecedorService
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <MudText Typo="Typo.h5">Adicionar Fornecedor</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+            <MudForm @ref="form" @bind-IsValid="@isValid">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoFornecedor.Nome"
+                                      Label="Nome"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Nome é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoFornecedor.Email"
+                                      Label="Email"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Email é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoFornecedor.Cnpj"
+                                      Label="CNPJ"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Mask="@cnpjMask"
+                                      Required="true"
+                                      RequiredError="CNPJ é obrigatório"
+                                      Placeholder="00.000.000/0000-00"
+                                      Disabled="@isLoading"
+                                      HelperText="Digite no formato: 00.000.000/0000-00" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novoFornecedor.Telefone"
+                                      Label="Telefone"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Mask="@phoneMask"
+                                      Required="true"
+                                      RequiredError="Telefone é obrigatório"
+                                      Placeholder="(00) 00000-0000"
+                                      Disabled="@isLoading"
+                                      HelperText="Digite no formato: (00) 00000-0000" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="novoFornecedor.Endereco"
+                                      Label="Endereço"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Endereço é obrigatório"
+                                      Lines="2"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex align-center">
+                        <MudCheckBox T="bool"
+                                     @bind-Checked="novoFornecedor.Ativo"
+                                     Label="Fornecedor Ativo"
+                                     Color="Color.Primary"
+                                     Disabled="@isLoading" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-6" />
+
+                <MudGrid>
+                    <MudItem xs="12" Class="d-flex justify-end gap-4">
+                        <MudButton Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   OnClick="Voltar"
+                                   Disabled="@isLoading"
+                                   StartIcon="@Icons.Material.Filled.ArrowBack">
+                            Voltar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SaveFornecedor"
+                                   Disabled="@(!isValid || isLoading)"
+                                   StartIcon="@Icons.Material.Filled.Save">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Salvando...</MudText>
+                            }
+                            else
+                            {
+                                @("Salvar")
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+    private Fornecedor novoFornecedor = new() { Ativo = true };
+    private MudForm form;
+    private bool isValid;
+    private bool isLoading;
+    private PatternMask cnpjMask = new PatternMask("00.000.000/0000-00");
+    private PatternMask phoneMask = new PatternMask("(00) 00000-0000");
+
+    protected override void OnInitialized()
+    {
+        novoFornecedor.EstabelecimentoId = estabelecimentoId;
+    }
+
+    private async Task SaveFornecedor()
+    {
+        try
+        {
+            await form.Validate();
+            if (form.IsValid)
+            {
+                isLoading = true;
+
+                // Limpar formatação de CNPJ e telefone
+                novoFornecedor.Cnpj = novoFornecedor.Cnpj?.Replace(".", "").Replace("-", "").Replace("/", "");
+                novoFornecedor.Telefone = novoFornecedor.Telefone?.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
+
+                var sucesso = await FornecedorService.CreateFornecedorAsync(novoFornecedor);
+
+                if (sucesso)
+                {
+                    Snackbar.Add("Fornecedor cadastrado com sucesso!", Severity.Success);
+                    NavigationManager.NavigateTo($"/proprietario/Fornecedores/index/{estabelecimentoId}");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao salvar o fornecedor.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo($"/proprietario/Fornecedores/index/{estabelecimentoId}");
+    }
+}
+
+
+

@@ -1,0 +1,135 @@
+﻿@page "/proprietario/fornecedores/index/{estabelecimentoId:int}"
+@inject IFornecedorService FornecedorService
+
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center">
+                        <MudText Typo="Typo.h5">Fornecedores</MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="NavigateToCreatePage">
+                            Adicionar Fornecedor
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+            <MudTable Items="@PaginatedFornecedores" Dense="true" Striped="true" Bordered="true" Loading="@isLoading">
+                <ToolBarContent>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString"
+                                  Placeholder="Pesquisar..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Immediate="true"
+                                  DebounceInterval="500" />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Nome</MudTh>
+                    <MudTh>CNPJ</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Telefone</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh Style="text-align:center">Ações</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Nome</MudTd>
+                    <MudTd>@context.Cnpj</MudTd>
+                    <MudTd>@context.Email</MudTd>
+                    <MudTd>@context.Telefone</MudTd>
+                    <MudTd>
+                        <MudText Color="@(context.Ativo ? Color.Success : Color.Error)">
+                            @(context.Ativo ? "Ativo" : "Inativo")
+                        </MudText>
+                    </MudTd>
+                    <MudTd Style="text-align:center">
+                        <MudTooltip Text="Editar">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="() => EditarFornecedor(context.Id)" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 5, 10, 25, 50 }" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+    private List<Fornecedor> fornecedores = new();
+    private bool isLoading = true;
+    private string searchString = "";
+    private int currentPage = 1;
+    private int pageSize = 10;
+
+    // Filtro de fornecedores
+    private IEnumerable<Fornecedor> FilteredFornecedores =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? fornecedores
+            : fornecedores.Where(f =>
+                (f.Nome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (f.Cnpj?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (f.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (f.Telefone?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+
+    // Paginação
+    private int PageCount => (int)Math.Ceiling((double)FilteredFornecedores.Count() / pageSize);
+    private IEnumerable<Fornecedor> PaginatedFornecedores =>
+        FilteredFornecedores
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFornecedores();
+    }
+
+    private async Task LoadFornecedores()
+    {
+        try
+        {
+            isLoading = true;
+            fornecedores = (await FornecedorService.GetFornecedoresByEstabelecimentoAsync(estabelecimentoId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar fornecedores: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NavigateToCreatePage()
+    {
+        NavigationManager.NavigateTo($"/proprietario/Fornecedores/create/{estabelecimentoId}");
+    }
+
+    private void EditarFornecedor(int id)
+    {
+        NavigationManager.NavigateTo($"/proprietario/Fornecedores/edit/{estabelecimentoId}/{id}");
+    }
+}
+
+
+

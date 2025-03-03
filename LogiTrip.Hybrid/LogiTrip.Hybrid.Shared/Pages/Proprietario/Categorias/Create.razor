@@ -1,0 +1,141 @@
+﻿@page "/proprietario/categorias/create/{estabelecimentoId:int}"
+
+@inject ICategoriaService CategoriaService
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@using MudBlazor
+@using LogiTrip.Model.Entity
+@using LogiTrip.Hybrid.Shared.Services.Interfaces
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudPaper Elevation="3" Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <MudText Typo="Typo.h5">Adicionar Categoria</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+            <MudForm @ref="form" @bind-IsValid="@isValid">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novaCategoria.Nome"
+                                      Label="Nome"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Nome é obrigatório"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="novaCategoria.Descricao"
+                                      Label="Descrição"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Descrição é obrigatória"
+                                      Lines="3"
+                                      Disabled="@isLoading" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex align-center">
+                        <MudCheckBox T="bool"
+                                     @bind-Checked="novaCategoria.Ativo"
+                                     Label="Categoria Ativa"
+                                     Color="Color.Primary"
+                                     Disabled="@isLoading" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-6" />
+
+                <MudGrid>
+                    <MudItem xs="12" Class="d-flex justify-end gap-4">
+                        <MudButton Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   OnClick="Voltar"
+                                   Disabled="@isLoading"
+                                   StartIcon="@Icons.Material.Filled.ArrowBack">
+                            Voltar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SaveCategoria"
+                                   Disabled="@(!isValid || isLoading)"
+                                   StartIcon="@Icons.Material.Filled.Save">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Salvando...</MudText>
+                            }
+                            else
+                            {
+                                @("Salvar")
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public int estabelecimentoId { get; set; }
+    private Categoria novaCategoria = new() { Ativo = true };
+    private MudForm form;
+    private bool isValid;
+    private bool isLoading;
+
+    protected override void OnInitialized()
+    {
+        novaCategoria.EstabelecimentoId = estabelecimentoId;
+    }
+
+    private async Task SaveCategoria()
+    {
+        try
+        {
+            await form.Validate();
+            if (form.IsValid)
+            {
+                isLoading = true;
+
+                var sucesso = await CategoriaService.CreateCategoriaAsync(novaCategoria);
+
+                if (sucesso)
+                {
+                    Snackbar.Add("Categoria cadastrada com sucesso!", Severity.Success);
+                    NavigationManager.NavigateTo($"/proprietario/categorias/index/{estabelecimentoId}");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao salvar a categoria.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        NavigationManager.NavigateTo($"/proprietario/categorias/index/{estabelecimentoId}");
+    }
+}
+

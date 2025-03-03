@@ -1,0 +1,87 @@
+﻿@inherits ComponentBase
+@inject IOpcaoProdutoService OpcaoProdutoService
+
+
+<MudDialog>
+    <TitleContent>
+        Adicionar Nova Opção
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="Opcao.Nome" Label="Nome da Opção" Required="true" />
+        <MudCheckBox T="bool" @bind-Checked="Opcao.Obrigatorio" Label="Esta opção é obrigatória?" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Salvar" Disabled="@isSaving">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] MudDialogInstance DialogInstance { get; set; }
+    [Parameter] public OpcaoProduto Opcao { get; set; }
+    [Parameter] public int EstabelecimentoId { get; set; }
+    [Parameter] public int ProdutoId { get; set; }
+
+    private bool isSaving = false;
+
+    protected override void OnParametersSet()
+    {
+        // Logs para verificar parâmetros
+        Console.WriteLine("===== OnParametersSet do AdicionarOpcaoDialog =====");
+        Console.WriteLine($"EstabelecimentoId: {EstabelecimentoId}");
+        Console.WriteLine($"ProdutoId: {ProdutoId}");
+        Console.WriteLine($"Opcao Nula? {(Opcao == null ? "Sim" : "Não")}");
+        if (Opcao != null)
+        {
+            Console.WriteLine($"Opcao.Nome: {Opcao.Nome ?? "null"}");
+            Console.WriteLine($"Opcao.Obrigatorio: {Opcao.Obrigatorio}");
+        }
+    }
+
+    private async Task Salvar()
+    {
+        Console.WriteLine("===== Tentando salvar a nova opção =====");
+        Console.WriteLine($"EstabelecimentoId: {EstabelecimentoId}, ProdutoId: {ProdutoId}");
+        Console.WriteLine($"Opcao.Nome: {Opcao?.Nome}, Opcao.Obrigatorio: {Opcao?.Obrigatorio}");
+
+        if (Opcao == null || string.IsNullOrWhiteSpace(Opcao.Nome))
+        {
+            Console.WriteLine("Opção inválida (Nome está vazio).");
+            return;
+        }
+
+
+        try
+        {
+            isSaving = true;
+            var sucesso = await OpcaoProdutoService.CreateOpcaoProdutoAsync(EstabelecimentoId, ProdutoId, Opcao);
+
+            if (sucesso)
+            {
+                Console.WriteLine("Opção criada com sucesso!");
+                DialogInstance.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Console.WriteLine("Falha ao criar a opção.");
+                Snackbar.Add("Erro ao criar opção", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao salvar a opção: {ex.Message}");
+            Snackbar.Add($"Erro ao salvar opção: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        Console.WriteLine("===== Diálogo de adicionar opção foi cancelado =====");
+        DialogInstance.Cancel();
+    }
+}

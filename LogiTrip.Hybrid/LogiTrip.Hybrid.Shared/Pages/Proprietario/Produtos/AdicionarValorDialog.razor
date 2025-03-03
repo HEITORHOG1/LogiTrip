@@ -1,0 +1,95 @@
+﻿@inherits ComponentBase
+@using MudBlazor
+@using LogiTrip.Model.Entity
+@inject IOpcaoProdutoService OpcaoProdutoService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        @if (Valor.Id == 0)
+        {
+            //Adicionar Novo Valor
+        }
+        else
+        {
+            //Editar Valor
+        }
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="Valor.Descricao" Label="Descrição" Required="true" />
+        <MudNumericField T="decimal"
+                         @bind-Value="Valor.PrecoAdicional"
+                         Label="Preço Adicional"
+                         Variant="Variant.Outlined"
+                         Required="true"
+                         RequiredError="Preço Adicional é obrigatório"
+                         Min="0"
+                         Format="N2"
+                         Culture='new System.Globalization.CultureInfo("pt-BR")'
+                         AdornmentText="R$"
+                         Adornment="Adornment.Start"
+                         Step="0.01M" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Salvar" Disabled="@isSaving">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance DialogInstance { get; set; }
+    [Parameter] public ValorOpcaoProduto Valor { get; set; }
+    [Parameter] public int EstabelecimentoId { get; set; }
+    [Parameter] public int ProdutoId { get; set; }
+    [Parameter] public int OpcaoId { get; set; }
+
+    private bool isSaving = false;
+
+    private async Task Salvar()
+    {
+        if (string.IsNullOrWhiteSpace(Valor.Descricao) || Valor.PrecoAdicional < 0)
+        {
+            Snackbar.Add("Preencha os campos corretamente.", Severity.Warning);
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            bool sucesso;
+            if (Valor.Id == 0)
+            {
+                // Adicionar
+                sucesso = await OpcaoProdutoService.CreateValorOpcaoProdutoAsync(EstabelecimentoId, ProdutoId, OpcaoId, Valor);
+            }
+            else
+            {
+                // Editar
+                sucesso = await OpcaoProdutoService.UpdateValorOpcaoProdutoAsync(EstabelecimentoId, ProdutoId, OpcaoId, Valor);
+            }
+
+            if (sucesso)
+            {
+                Snackbar.Add("Valor salvo com sucesso!", Severity.Success);
+                DialogInstance.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("Erro ao salvar o valor.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao salvar valor: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        DialogInstance.Cancel();
+    }
+}
